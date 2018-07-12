@@ -1,6 +1,7 @@
 package gowell
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,11 +15,13 @@ func defaultHealthzHandler(w http.ResponseWriter, r *http.Request) {
 
 type Server struct {
 	router         *mux.Router
+	addr           string
 	healthzHandler func(http.ResponseWriter, *http.Request)
 }
 
 func NewServer() *Server {
 	s := &Server{
+		addr:           ":8080",
 		router:         mux.NewRouter(),
 		healthzHandler: defaultHealthzHandler,
 	}
@@ -34,7 +37,12 @@ func (s *Server) SetRouter(r *mux.Router) {
 	s.router = r
 }
 
+func (s *Server) SetAddr(addr string) {
+	s.addr = addr
+}
+
 func (s *Server) Start() {
+	flag.Parse()
 	s.router.HandleFunc("/healthz", s.healthzHandler)
-	log.Fatal(http.ListenAndServe(":8080", s.router))
+	log.Fatal(http.ListenAndServe(s.addr, s.router))
 }
