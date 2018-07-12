@@ -43,6 +43,7 @@ func (s *Server) SetAddr(addr string) {
 
 func (s *Server) Start() {
 	flag.Parse()
+	log.Print("Ready to serve.")
 	s.router.HandleFunc("/healthz", s.healthzHandler)
 	log.Fatal(http.ListenAndServe(s.addr, s.router))
 }
