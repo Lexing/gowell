@@ -35,5 +35,6 @@ func (s *Server) SetRouter(r *mux.Router) {
 }
 
 func (s *Server) Start() {
+	s.router.HandleFunc("/healthz", s.healthzHandler)
 	log.Fatal(http.ListenAndServe(":8080", s.router))
 }
