@@ -66,11 +66,9 @@ func (s *HttpServer) Start() {
 }
 
 // InitializeHTTPService starts a HTTP server and add basic http services, e.g. monitoring
-func InitializeHTTPService(addr string) *HttpServer {
+func InitializeHTTPService(addr string) {
 	s := NewHttpServer(":8080")
-	go s.Start()
-
-	return s
+	s.Start()
 }
 
 // NoteHealthy marks this server as healthy, reports 'ok' in /healthz
