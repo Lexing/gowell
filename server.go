@@ -46,13 +46,14 @@ func (s *HttpServer) SetAddr(addr string) {
 func (s *HttpServer) Start() {
 	flag.Parse()
 	s.router.HandleFunc("/healthz", s.healthzHandler)
-	log.Print("Ready to serve.")
+	log.Printf("Http server ready to serve on %v", s.addr)
 	err := http.ListenAndServe(s.addr, s.router)
 	if err != nil {
 		log.Panic(err)
 	}
 }
 
+// ThriftServer wraps with HTTP server for basic monitoring.
 type ThriftServer struct {
 	// HTTP server for basic utils query
 	http *HttpServer
@@ -60,6 +61,7 @@ type ThriftServer struct {
 	addr string
 }
 
+// NewThriftServer creates new ThriftServer listening on addr.
 func NewThriftServer(addr string) *ThriftServer {
 	s := &ThriftServer{
 		addr: addr,
@@ -69,6 +71,7 @@ func NewThriftServer(addr string) *ThriftServer {
 	return s
 }
 
+// Start starts Thrift server with given thrift processor
 func (s *ThriftServer) Start(processor thrift.TProcessor) {
 	flag.Parse()
 	go s.http.Start()
