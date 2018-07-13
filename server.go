@@ -7,10 +7,20 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+// TODO: add port flag
+// var port = flag.String("util_port", "8080", "listening port for ")
 
 func defaultHealthzHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "ok")
+}
+
+func flagzHandler(w http.ResponseWriter, r *http.Request) {
+	flag.VisitAll(func(f *flag.Flag) {
+		fmt.Fprintf(w, "%v: %v\n", f.Name, f.Value)
+	})
 }
 
 type HttpServer struct {
@@ -44,6 +54,8 @@ func (s *HttpServer) SetAddr(addr string) {
 func (s *HttpServer) Start() {
 	flag.Parse()
 	s.router.HandleFunc("/healthz", s.healthzHandler)
+	s.router.HandleFunc("/flagz", flagzHandler)
+	s.router.Handle("/metrics", promhttp.Handler())
 	log.Printf("Http server ready to serve on %v", s.addr)
 	err := http.ListenAndServe(s.addr, s.router)
 	if err != nil {
