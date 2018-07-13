@@ -6,8 +6,6 @@ import (
 	"log"
 	"net/http"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
-
 	"github.com/gorilla/mux"
 )
 
@@ -53,45 +51,51 @@ func (s *HttpServer) Start() {
 	}
 }
 
-// ThriftServer wraps with HTTP server for basic monitoring.
-type ThriftServer struct {
-	// HTTP server for basic utils query
-	http *HttpServer
+// // ThriftServer wraps with HTTP server for basic monitoring.
+// type ThriftServer struct {
+// 	// HTTP server for basic utils query
+// 	http *HttpServer
 
-	addr string
-}
+// 	addr string
+// }
 
-// NewThriftServer creates new ThriftServer listening on addr.
-func NewThriftServer(addr string) *ThriftServer {
-	s := &ThriftServer{
-		addr: addr,
-		http: NewHttpServer(":8080"),
-	}
+// // NewThriftServer creates new ThriftServer listening on addr.
+// func NewThriftServer(addr string) *ThriftServer {
+// 	s := &ThriftServer{
+// 		addr: addr,
+// 		http: NewHttpServer(":8080"),
+// 	}
 
-	return s
-}
+// 	return s
+// }
 
-// Start starts Thrift server with given thrift processor
-func (s *ThriftServer) Start(processor thrift.TProcessor) {
-	flag.Parse()
-	go s.http.Start()
+// // Start starts Thrift server with given thrift processor
+// func (s *ThriftServer) Start(processor thrift.TProcessor) {
+// 	flag.Parse()
+// 	go s.http.Start()
 
-	s.startThriftServer(processor)
-}
+// 	s.startThriftServer(processor)
+// }
 
-func (s *ThriftServer) startThriftServer(processor thrift.TProcessor) {
-	transport_factory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
-	protocol_factory := thrift.NewTCompactProtocolFactory()
+// func (s *ThriftServer) startThriftServer(processor thrift.TProcessor) {
+// 	transport_factory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
+// 	protocol_factory := thrift.NewTCompactProtocolFactory()
 
-	server_transport, err := thrift.NewTServerSocket(s.addr)
-	if err != nil {
-		log.Panic(err)
-	}
+// 	server_transport, err := thrift.NewTServerSocket(s.addr)
+// 	if err != nil {
+// 		log.Panic(err)
+// 	}
 
-	log.Printf("Thrift server listen on:", s.addr)
-	server := thrift.NewTSimpleServer4(processor, server_transport, transport_factory, protocol_factory)
-	err = server.Serve()
-	if err != nil {
-		log.Panic(err)
-	}
+// 	log.Printf("Thrift server listen on:", s.addr)
+// 	server := thrift.NewTSimpleServer4(processor, server_transport, transport_factory, protocol_factory)
+// 	err = server.Serve()
+// 	if err != nil {
+// 		log.Panic(err)
+// 	}
+// }
+
+// InitializeHTTPService starts a HTTP server and add basic http services, e.g. monitoring
+func InitializeHTTPService(addr string) {
+	http := NewHttpServer(":8080")
+	go http.Start()
 }
