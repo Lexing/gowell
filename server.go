@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -13,8 +14,15 @@ import (
 // TODO: add port flag
 // var port = flag.String("util_port", "8080", "listening port for ")
 
-func defaultHealthzHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "ok")
+var healthy bool
+var hLock sync.RWMutex
+
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	hLock.RLock()
+	defer hLock.RUnlock()
+	if healthy {
+		fmt.Fprint(w, "ok")
+	}
 }
 
 func flagzHandler(w http.ResponseWriter, r *http.Request) {
@@ -24,23 +32,17 @@ func flagzHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type HttpServer struct {
-	router         *mux.Router
-	addr           string
-	healthzHandler func(http.ResponseWriter, *http.Request)
+	router *mux.Router
+	addr   string
 }
 
 func NewHttpServer(addr string) *HttpServer {
 	s := &HttpServer{
-		addr:           addr,
-		router:         mux.NewRouter(),
-		healthzHandler: defaultHealthzHandler,
+		addr:   addr,
+		router: mux.NewRouter(),
 	}
 
 	return s
-}
-
-func (s *HttpServer) SetHealthzHandler(h func(http.ResponseWriter, *http.Request)) {
-	s.healthzHandler = h
 }
 
 func (s *HttpServer) SetRouter(r *mux.Router) {
@@ -53,7 +55,7 @@ func (s *HttpServer) SetAddr(addr string) {
 
 func (s *HttpServer) Start() {
 	flag.Parse()
-	s.router.HandleFunc("/healthz", s.healthzHandler)
+	s.router.HandleFunc("/healthz", healthzHandler)
 	s.router.HandleFunc("/flagz", flagzHandler)
 	s.router.Handle("/metrics", promhttp.Handler())
 	log.Printf("Http server ready to serve on %v", s.addr)
@@ -63,51 +65,17 @@ func (s *HttpServer) Start() {
 	}
 }
 
-// // ThriftServer wraps with HTTP server for basic monitoring.
-// type ThriftServer struct {
-// 	// HTTP server for basic utils query
-// 	http *HttpServer
-
-// 	addr string
-// }
-
-// // NewThriftServer creates new ThriftServer listening on addr.
-// func NewThriftServer(addr string) *ThriftServer {
-// 	s := &ThriftServer{
-// 		addr: addr,
-// 		http: NewHttpServer(":8080"),
-// 	}
-
-// 	return s
-// }
-
-// // Start starts Thrift server with given thrift processor
-// func (s *ThriftServer) Start(processor thrift.TProcessor) {
-// 	flag.Parse()
-// 	go s.http.Start()
-
-// 	s.startThriftServer(processor)
-// }
-
-// func (s *ThriftServer) startThriftServer(processor thrift.TProcessor) {
-// 	transport_factory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
-// 	protocol_factory := thrift.NewTCompactProtocolFactory()
-
-// 	server_transport, err := thrift.NewTServerSocket(s.addr)
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-
-// 	log.Printf("Thrift server listen on:", s.addr)
-// 	server := thrift.NewTSimpleServer4(processor, server_transport, transport_factory, protocol_factory)
-// 	err = server.Serve()
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-// }
-
 // InitializeHTTPService starts a HTTP server and add basic http services, e.g. monitoring
-func InitializeHTTPService(addr string) {
-	http := NewHttpServer(":8080")
-	go http.Start()
+func InitializeHTTPService(addr string) *HttpServer {
+	s := NewHttpServer(":8080")
+	go s.Start()
+
+	return s
+}
+
+// NoteHealthy marks this server as healthy, reports 'ok' in /healthz
+func NoteHealthy() {
+	hLock.Lock()
+	healthy = true
+	hLock.Unlock()
 }
