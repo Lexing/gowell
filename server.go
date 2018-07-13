@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"git.apache.org/thrift.git/lib/go/thrift"
+
 	"github.com/gorilla/mux"
 )
 
@@ -13,15 +15,15 @@ func defaultHealthzHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "ok")
 }
 
-type Server struct {
+type HttpServer struct {
 	router         *mux.Router
 	addr           string
 	healthzHandler func(http.ResponseWriter, *http.Request)
 }
 
-func NewServer() *Server {
-	s := &Server{
-		addr:           ":8080",
+func NewHttpServer(addr string) *HttpServer {
+	s := &HttpServer{
+		addr:           addr,
 		router:         mux.NewRouter(),
 		healthzHandler: defaultHealthzHandler,
 	}
@@ -29,21 +31,64 @@ func NewServer() *Server {
 	return s
 }
 
-func (s *Server) SetHealthzHandler(h func(http.ResponseWriter, *http.Request)) {
+func (s *HttpServer) SetHealthzHandler(h func(http.ResponseWriter, *http.Request)) {
 	s.healthzHandler = h
 }
 
-func (s *Server) SetRouter(r *mux.Router) {
+func (s *HttpServer) SetRouter(r *mux.Router) {
 	s.router = r
 }
 
-func (s *Server) SetAddr(addr string) {
+func (s *HttpServer) SetAddr(addr string) {
 	s.addr = addr
 }
 
-func (s *Server) Start() {
+func (s *HttpServer) Start() {
 	flag.Parse()
-	log.Print("Ready to serve.")
 	s.router.HandleFunc("/healthz", s.healthzHandler)
-	log.Fatal(http.ListenAndServe(s.addr, s.router))
+	log.Print("Ready to serve.")
+	err := http.ListenAndServe(s.addr, s.router)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+type ThriftServer struct {
+	// HTTP server for basic utils query
+	http *HttpServer
+
+	addr string
+}
+
+func NewThriftServer(addr string) *ThriftServer {
+	s := &ThriftServer{
+		addr: addr,
+		http: NewHttpServer(":8080"),
+	}
+
+	return s
+}
+
+func (s *ThriftServer) Start(processor thrift.TProcessor) {
+	flag.Parse()
+	go s.http.Start()
+
+	s.startThriftServer(processor)
+}
+
+func (s *ThriftServer) startThriftServer(processor thrift.TProcessor) {
+	transport_factory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
+	protocol_factory := thrift.NewTCompactProtocolFactory()
+
+	server_transport, err := thrift.NewTServerSocket(s.addr)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	log.Printf("Thrift server listen on:", s.addr)
+	server := thrift.NewTSimpleServer4(processor, server_transport, transport_factory, protocol_factory)
+	err = server.Serve()
+	if err != nil {
+		log.Panic(err)
+	}
 }
