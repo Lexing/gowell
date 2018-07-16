@@ -11,9 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// TODO: add port flag
-// var port = flag.String("util_port", "8080", "listening port for ")
-
+var healthyCh = make(chan bool, 1)
 var healthy bool
 var hLock sync.RWMutex
 
@@ -58,22 +56,30 @@ func (s *HttpServer) Start() {
 	s.router.HandleFunc("/healthz", healthzHandler)
 	s.router.HandleFunc("/flagz", flagzHandler)
 	s.router.Handle("/metrics", promhttp.Handler())
-	log.Printf("Http server ready to serve on %v", s.addr)
 	err := http.ListenAndServe(s.addr, s.router)
 	if err != nil {
 		log.Panic(err)
 	}
+
+	go func() {
+		<-healthyCh
+		hLock.Lock()
+		healthy = true
+		hLock.Unlock()
+		log.Printf("Server is now healthy on %v.", s.addr)
+	}()
 }
 
 // InitializeHTTPService starts a HTTP server and add basic http services, e.g. monitoring
 func InitializeHTTPService(addr string) {
-	s := NewHttpServer(":8080")
+	s := NewHttpServer(addr)
 	s.Start()
 }
 
 // NoteHealthy marks this server as healthy, reports 'ok' in /healthz
 func NoteHealthy() {
-	hLock.Lock()
-	healthy = true
-	hLock.Unlock()
+	var once sync.Once
+	once.Do(func() {
+		healthyCh <- true
+	})
 }
