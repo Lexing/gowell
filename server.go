@@ -11,6 +11,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+var (
+	addr = flag.String("gowell_port", "8080", "listening port")
+)
+
 var healthyCh = make(chan bool, 1)
 var healthy bool
 var hLock sync.RWMutex
@@ -71,8 +75,8 @@ func (s *HttpServer) Start() {
 }
 
 // InitializeHTTPService starts a HTTP server and add basic http services, e.g. monitoring
-func InitializeHTTPService(addr string) {
-	s := NewHttpServer(addr)
+func InitializeHTTPService() {
+	s := NewHttpServer(*addr)
 	s.Start()
 }
 
