@@ -63,10 +63,6 @@ func (s *HttpServer) Start() {
 	s.router.HandleFunc("/healthz", healthzHandler)
 	s.router.HandleFunc("/flagz", flagzHandler)
 	s.router.Handle("/metrics", promhttp.Handler())
-	err := http.ListenAndServe(s.addr, s.router)
-	if err != nil {
-		log.Panic(err)
-	}
 
 	go func() {
 		<-healthyCh
@@ -75,6 +71,11 @@ func (s *HttpServer) Start() {
 		hLock.Unlock()
 		log.Printf("Server is now healthy on %v.", s.addr)
 	}()
+
+	err := http.ListenAndServe(s.addr, s.router)
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 // InitializeHTTPService starts a HTTP server and add basic http services, e.g. monitoring
