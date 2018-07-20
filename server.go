@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	addr = flag.String("gowell_port", "8080", "listening port")
+	port = flag.String("gowell_port", "8080", "gowell port")
 )
 
 var healthyCh = make(chan bool, 1)
@@ -76,7 +76,7 @@ func (s *HttpServer) Start() {
 
 // InitializeHTTPService starts a HTTP server and add basic http services, e.g. monitoring
 func InitializeHTTPService() {
-	s := NewHttpServer(*addr)
+	s := NewHttpServer(fmt.Sprintf(":%v", *port))
 	s.Start()
 }
 
