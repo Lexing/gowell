@@ -20,10 +20,13 @@ var healthy bool
 var hLock sync.RWMutex
 
 func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	// healthz for k8s style, 200 means live, others means not
 	hLock.RLock()
 	defer hLock.RUnlock()
 	if healthy {
 		fmt.Fprint(w, "ok")
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
 
