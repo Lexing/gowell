@@ -72,10 +72,7 @@ func (s *HttpServer) Start() {
 		log.Printf("Server is now healthy on %v.", s.addr)
 	}()
 
-	err := http.ListenAndServe(s.addr, s.router)
-	if err != nil {
-		log.Panic(err)
-	}
+	log.Fatal(http.ListenAndServe(s.addr, s.router))
 }
 
 // InitializeHTTPService starts a HTTP server and add basic http services, e.g. monitoring
